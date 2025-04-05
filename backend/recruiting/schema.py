@@ -228,7 +228,7 @@ class ProspectInput(graphene.InputObjectType):
     source = graphene.String()
     notes = graphene.String()
 
-class ProspectDemographicInput(graphene.InputObjectType):
+class DemographicInfoInput(graphene.InputObjectType):
     prospect_id = graphene.ID(required=True)
     age = graphene.Int()
     gender = graphene.String()
@@ -297,7 +297,7 @@ class CreateProspect(graphene.Mutation):
 
 class CreateDemographicInfo(graphene.Mutation):
     class Arguments:
-        input = ProspectDemographicInput(required=True)
+        input = DemographicInfoInput(required=True)
     
     demographic_info = graphene.Field(DemographicInfoType)
     
