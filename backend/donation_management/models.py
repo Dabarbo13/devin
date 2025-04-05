@@ -42,8 +42,8 @@ class Donor(models.Model):
     
     def save(self, *args, **kwargs):
         if self.height_cm and self.weight_kg:
-            height_m = self.height_cm / 100
-            self.bmi = self.weight_kg / (height_m * height_m)
+            height_m = float(self.height_cm) / 100
+            self.bmi = float(self.weight_kg) / (height_m * height_m)
         super().save(*args, **kwargs)
 
 
@@ -165,7 +165,7 @@ class DonorEligibilityRule(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.get_rule_type_display()} - {self.name}"
+        return f"{self.get_rule_type_display()} - {self.name}"  # type: ignore
 
 
 class DonorEligibilityAssessment(models.Model):
@@ -284,7 +284,7 @@ class StorageUnit(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.name} ({self.get_unit_type_display()})"
+        return f"{self.name} ({self.get_unit_type_display()})"  # type: ignore
 
 
 class StorageLocation(models.Model):
@@ -363,4 +363,4 @@ class ChainOfCustodyLog(models.Model):
         ordering = ['-timestamp']
     
     def __str__(self):
-        return f"{self.sample.sample_id} - {self.get_action_display()} ({self.timestamp})"
+        return f"{self.sample.sample_id} - {self.get_action_display()} ({self.timestamp})"  # type: ignore
