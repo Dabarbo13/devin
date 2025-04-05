@@ -1,4 +1,6 @@
-# devinBuild a full-stack, production-ready web application with the following integrated systems:
+# Biobank Platform
+
+A full-stack, production-ready web application with the following integrated systems:
 
 1. Clinical Trial Management (CTMS)
 
@@ -74,4 +76,67 @@ Optional: Mobile-optimized frontend or PWA wrapper
 
 Generate modular code organized by features, with clear folders for models, views, serializers, tests, and routes. Include migration files, environment configs, seed data, and CI/CD pipeline scripts.
 
-THE NUMBER ONE MOST IMPORTANT RULE: Please keep track of your token count, if you estimate that an artifact will not be able to be completed, pause and ask me to tell you to continue. If an artifact will need to be broken into separate prompts. Chose the most logical stopping place that will allow you to pick back up
+## Development Setup
+
+### Prerequisites
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL 14+
+- Redis (for Celery)
+
+### Backend Setup
+1. Clone the repository
+   ```
+   git clone https://github.com/Dabarbo13/devin.git
+   cd devin/backend
+   ```
+
+2. Set up Python environment
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install poetry
+   poetry install
+   ```
+
+3. Configure environment variables
+   ```
+   cp .env.example .env
+   # Edit .env with your specific configuration
+   ```
+
+4. Run migrations
+   ```
+   python manage.py migrate
+   ```
+
+5. Start development server
+   ```
+   python manage.py runserver
+   ```
+
+### Frontend Setup
+1. Navigate to frontend directory
+   ```
+   cd ../frontend
+   ```
+
+2. Install dependencies
+   ```
+   npm install
+   ```
+
+3. Start development server
+   ```
+   npm run dev
+   ```
+
+### API Documentation
+- Swagger UI: http://localhost:8000/swagger/
+- ReDoc: http://localhost:8000/redoc/
+
+### Authentication
+- JWT authentication is implemented for API endpoints
+- Obtain tokens at: http://localhost:8000/api/token/
+- Refresh tokens at: http://localhost:8000/api/token/refresh/
+- Verify tokens at: http://localhost:8000/api/token/verify/
