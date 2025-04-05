@@ -59,7 +59,7 @@ class StudyPhase(models.Model):
         unique_together = ('study', 'phase_type')
     
     def __str__(self):
-        return f"{self.study.protocol_number} - {self.get_phase_type_display()}"
+        return f"{self.study.protocol_number} - {self.get_phase_type_display()}"  # type: ignore
 
 
 class StudyArm(models.Model):
@@ -225,7 +225,7 @@ class EligibilityCriteria(models.Model):
         ordering = ['criteria_type', 'order']
     
     def __str__(self):
-        return f"{self.study.protocol_number} - {self.get_criteria_type_display()} #{self.order}"
+        return f"{self.study.protocol_number} - {self.get_criteria_type_display()} #{self.order}"  # type: ignore
 
 
 class ParticipantEligibility(models.Model):
@@ -339,7 +339,7 @@ class ProtocolDeviation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.study.protocol_number} - {self.get_category_display()} ({self.deviation_date})"
+        return f"{self.study.protocol_number} - {self.get_category_display()} ({self.deviation_date})"  # type: ignore
 
 
 class SiteActivityLog(models.Model):
@@ -365,4 +365,4 @@ class SiteActivityLog(models.Model):
         ordering = ['-activity_date']
     
     def __str__(self):
-        return f"{self.site.name} - {self.get_activity_type_display()} ({self.activity_date})"
+        return f"{self.site.name} - {self.get_activity_type_display()} ({self.activity_date})"  # type: ignore
