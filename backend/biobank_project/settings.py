@@ -173,6 +173,6 @@ AUTH_USER_MODEL = 'users.User'
 GRAPHENE = {
     'SCHEMA': 'biobank_project.schema.schema',
     'MIDDLEWARE': [
-        'graphene_django.middleware.django_middleware',
+        'graphql_jwt.middleware.JSONWebTokenMiddleware',
     ],
 }
