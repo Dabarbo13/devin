@@ -16,18 +16,31 @@ class Study(models.Model):
         ('terminated', 'Terminated'),
     )
     
+    PHASE_CHOICES = (
+        ('PHASE_0', 'Phase 0'),
+        ('PHASE_1', 'Phase 1'),
+        ('PHASE_2', 'Phase 2'),
+        ('PHASE_3', 'Phase 3'),
+        ('PHASE_4', 'Phase 4'),
+    )
+    
     title = models.CharField(max_length=255)
     description = models.TextField()
     protocol_number = models.CharField(max_length=100, unique=True)
     sponsor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='sponsored_studies', 
-                               limit_choices_to={'is_sponsor': True})
+                               limit_choices_to={'is_sponsor': True}, null=True, blank=True)
+    sponsor_name = models.CharField(max_length=255, null=True, blank=True)
     principal_investigator = models.ForeignKey(User, on_delete=models.PROTECT, 
                                               related_name='pi_studies',
                                               limit_choices_to={'is_investigator': True})
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    phase = models.CharField(max_length=20, choices=PHASE_CHOICES, null=True, blank=True)
+    therapeutic_area = models.CharField(max_length=255, null=True, blank=True)
+    indication = models.CharField(max_length=255, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     target_participants = models.PositiveIntegerField(default=0)
+    target_enrollment = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -47,9 +60,10 @@ class StudyPhase(models.Model):
     )
     
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='phases')
-    phase_type = models.CharField(max_length=20, choices=PHASE_CHOICES)
+    phase_type = models.CharField(max_length=20, choices=PHASE_CHOICES, null=True, blank=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
+    order = models.PositiveIntegerField(default=0)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -57,6 +71,7 @@ class StudyPhase(models.Model):
     
     class Meta:
         unique_together = ('study', 'phase_type')
+        ordering = ['order']
     
     def __str__(self):
         return f"{self.study.protocol_number} - {self.get_phase_type_display()}"  # type: ignore
@@ -190,14 +205,30 @@ class Participant(models.Model):
         ('screen_failed', 'Screen Failed'),
     )
     
+    GENDER_CHOICES = (
+        ('MALE', 'Male'),
+        ('FEMALE', 'Female'),
+        ('OTHER', 'Other'),
+        ('PREFER_NOT_TO_SAY', 'Prefer not to say'),
+    )
+    
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='participants')
     study_arm = models.ForeignKey(StudyArm, on_delete=models.SET_NULL, null=True, related_name='participants')
-    site = models.ForeignKey(StudySite, on_delete=models.CASCADE, related_name='participants')
+    arm = models.ForeignKey(StudyArm, on_delete=models.SET_NULL, null=True, related_name='arm_participants')
+    site = models.ForeignKey(StudySite, on_delete=models.CASCADE, related_name='participants', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='trial_participations')
     participant_id = models.CharField(max_length=100, unique=True)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=100, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, null=True, blank=True)
+    contact_email = models.EmailField(null=True, blank=True)
+    contact_phone = models.CharField(max_length=20, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='screening')
     enrollment_date = models.DateField(null=True, blank=True)
     completion_date = models.DateField(null=True, blank=True)
+    withdrawal_date = models.DateField(null=True, blank=True)
     withdrawal_reason = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

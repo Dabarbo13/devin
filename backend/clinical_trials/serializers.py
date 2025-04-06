@@ -7,6 +7,29 @@ from .models import (
 from users.serializers import UserSerializer
 
 
+class StudySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Study
+        fields = [
+            'id', 'title', 'protocol_number', 'status', 'phase',
+            'start_date', 'end_date', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ParticipantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Participant
+        fields = [
+            'id', 'study', 'arm', 'participant_id', 'first_name',
+            'last_name', 'date_of_birth', 'gender', 'contact_email',
+            'contact_phone', 'address', 'status', 'enrollment_date',
+            'completion_date', 'withdrawal_date', 'withdrawal_reason',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
 class StudyPhaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyPhase
