@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
 
 import ClinicalTrials from './components/ClinicalTrials'
@@ -54,11 +54,11 @@ function App() {
             <h1 className="text-xl font-bold">Biobank Platform</h1>
             <div className="space-x-4">
               <a href="/" className="text-blue-600 hover:text-blue-800">Dashboard</a>
-              <a href="/clinical-trials" className="text-blue-600 hover:text-blue-800">Clinical Trials</a>
-              <a href="/donation-management" className="text-blue-600 hover:text-blue-800">Donations</a>
-              <a href="/recruiting" className="text-blue-600 hover:text-blue-800">Recruiting</a>
-              <a href="/sponsor-portal" className="text-blue-600 hover:text-blue-800">Sponsor Portal</a>
-              <a href="/store" className="text-blue-600 hover:text-blue-800">Store</a>
+              <a href="/#/clinical-trials" className="text-blue-600 hover:text-blue-800">Clinical Trials</a>
+              <a href="/#/donation-management" className="text-blue-600 hover:text-blue-800">Donations</a>
+              <a href="/#/recruiting" className="text-blue-600 hover:text-blue-800">Recruiting</a>
+              <a href="/#/sponsor-portal" className="text-blue-600 hover:text-blue-800">Sponsor Portal</a>
+              <a href="/#/store" className="text-blue-600 hover:text-blue-800">Store</a>
             </div>
           </div>
         </nav>
