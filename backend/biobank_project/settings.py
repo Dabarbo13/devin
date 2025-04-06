@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'recruiting',
     'sponsor_portal',
     'web_store',
+    'management',
 ]
 
 MIDDLEWARE = [
