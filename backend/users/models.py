@@ -81,3 +81,55 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return f"Profile for {self.user.email}"
+        
+    @property
+    def is_active_study_participant(self):
+        """Check if user is an active study participant."""
+        from clinical_trials.models import Participant
+        
+        participant_records = Participant.objects.filter(user=self.user)
+        
+        active_statuses = ['screening', 'enrolled', 'active']
+        return participant_records.filter(status__in=active_statuses).exists()
+    
+    @property
+    def get_participant_studies(self):
+        """Get all studies the user is participating in."""
+        from clinical_trials.models import Participant
+        
+        participant_records = Participant.objects.filter(user=self.user)
+        
+        status_dict = dict(Participant.STATUS_CHOICES)
+        
+        return [
+            {
+                'study_id': p.study.protocol_number,
+                'study_title': p.study.title,
+                'status': status_dict.get(p.status) if p.status in status_dict else str(p.status),
+                'enrollment_date': p.enrollment_date,
+                'completion_date': p.completion_date
+            }
+            for p in participant_records
+        ]
+    
+    @property
+    def get_donation_history(self):
+        """Get donation history if user is a donor."""
+        try:
+            from donation_management.models import Donation, Donor
+            
+            donor = Donor.objects.filter(user=self.user).first()
+            if donor:
+                donations = Donation.objects.filter(donor=donor)
+                return [
+                    {
+                        'donation_id': d.donation_id,
+                        'donation_type': d.donation_type.name,
+                        'donation_date': d.donation_date,
+                        'volume_ml': d.volume_ml
+                    }
+                    for d in donations
+                ]
+        except Exception:
+            pass
+        return []

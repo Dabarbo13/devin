@@ -36,6 +36,8 @@ class Donor(models.Model):
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    participant = models.ForeignKey('clinical_trials.Participant', on_delete=models.SET_NULL, 
+                                   null=True, blank=True, related_name='donor_record')
     
     def __str__(self):
         return f"{self.donor_id} - {self.user.full_name}"
@@ -213,12 +215,23 @@ class DonationAppointment(models.Model):
         ('no_show', 'No Show'),
     )
     
+    REVIEW_STATUS_CHOICES = (
+        ('not_needed', 'Not Needed'),
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    
     donor = models.ForeignKey(Donor, on_delete=models.CASCADE, related_name='donation_appointments')
     donation_type = models.ForeignKey(DonationType, on_delete=models.CASCADE)
     scheduled_date = models.DateField()
     scheduled_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    needs_review = models.BooleanField(default=False, help_text="Indicates if this appointment needs review due to donor's study participation")
+    review_status = models.CharField(max_length=20, choices=REVIEW_STATUS_CHOICES, default='not_needed')
+    review_notes = models.TextField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_appointments')
     notes = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_appointments')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -226,6 +239,33 @@ class DonationAppointment(models.Model):
     
     def __str__(self):
         return f"{self.donor.donor_id} - {self.donation_type.name} ({self.scheduled_date})"
+        
+    def save(self, *args, **kwargs):
+        """Override save to check if donor is an active study participant."""
+        is_new = self.pk is None
+        
+        if is_new or self.status == 'scheduled':
+            self.check_participant_status()
+            
+        super().save(*args, **kwargs)
+    
+    def check_participant_status(self):
+        """Check if the donor is an active study participant and flag for review if needed."""
+        if self.donor.participant:
+            participant = self.donor.participant
+            active_statuses = ['screening', 'enrolled', 'active']
+            
+            if participant.status in active_statuses:
+                self.needs_review = True
+                self.review_status = 'pending'
+                self.review_notes = f"Donor is currently an active participant in study {participant.study.protocol_number}. " \
+                                   f"Current participant status: {participant.get_status_display()}."
+            else:
+                self.needs_review = False
+                self.review_status = 'not_needed'
+        else:
+            self.needs_review = False
+            self.review_status = 'not_needed'
 
 
 class Donation(models.Model):
