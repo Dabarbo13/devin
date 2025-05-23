@@ -1,10 +1,20 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { HashRouter as Router } from 'react-router-dom'; // Updated import
+import { ApolloProvider } from '@apollo/client';
+import client from './lib/apolloClient';
+import { AuthProvider } from './context/AuthContext';
+import App from './App';
+import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Router>
+      <ApolloProvider client={client}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ApolloProvider>
+    </Router>
   </StrictMode>,
-)
+);
