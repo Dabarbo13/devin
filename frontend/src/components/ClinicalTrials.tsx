@@ -1,165 +1,116 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/badge';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from './ui/table';
+import { Badge } from './ui/badge';
+import { useQuery, useLazyQuery } from '@apollo/client'; // Updated imports
+import { GET_STUDIES_LIST, GET_PARTICIPANTS_FOR_STUDY } from '../graphql/queries'; // Updated imports
+import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import AddStudyForm from './AddStudyForm';
 
-const mockStudies = [
-  {
-    id: 1,
-    title: 'Evaluation of Novel Immunotherapy',
-    protocol_number: 'PROTO-12345678',
-    status: 'active',
-    phase: 'PHASE_2',
-    therapeutic_area: 'Oncology',
-    principal_investigator: 'Dr. Jane Smith',
-    start_date: '2024-01-15',
-    target_participants: 120
-  },
-  {
-    id: 2,
-    title: 'Cardiovascular Outcomes Study',
-    protocol_number: 'PROTO-87654321',
-    status: 'pending_approval',
-    phase: 'PHASE_3',
-    therapeutic_area: 'Cardiology',
-    principal_investigator: 'Dr. John Doe',
-    start_date: '2024-03-01',
-    target_participants: 250
-  },
-  {
-    id: 3,
-    title: 'Novel Treatment for Alzheimer\'s Disease',
-    protocol_number: 'PROTO-23456789',
-    status: 'completed',
-    phase: 'PHASE_2',
-    therapeutic_area: 'Neurology',
-    principal_investigator: 'Dr. Sarah Johnson',
-    start_date: '2023-06-10',
-    target_participants: 180
-  }
-];
-
-const mockParticipants = [
-  {
-    id: 1,
-    participant_id: 'PART-12345678',
-    name: 'Michael Brown',
-    status: 'active',
-    site: 'Boston Medical Center',
-    enrollment_date: '2024-02-15',
-    study_id: 1
-  },
-  {
-    id: 2,
-    participant_id: 'PART-23456789',
-    name: 'Jennifer Wilson',
-    status: 'screening',
-    site: 'Boston Medical Center',
-    enrollment_date: null,
-    study_id: 1
-  },
-  {
-    id: 3,
-    participant_id: 'PART-34567890',
-    name: 'Robert Davis',
-    status: 'completed',
-    site: 'Chicago Research Hospital',
-    enrollment_date: '2024-01-20',
-    study_id: 3
-  }
-];
-
+// Mock data for visits - to be replaced later
 const mockVisits = [
-  {
-    id: 1,
-    participant_id: 'PART-12345678',
-    visit_name: 'Screening Visit',
-    scheduled_date: '2024-02-10',
-    status: 'completed',
-    site: 'Boston Medical Center'
-  },
-  {
-    id: 2,
-    participant_id: 'PART-12345678',
-    visit_name: 'Baseline Visit',
-    scheduled_date: '2024-02-17',
-    status: 'completed',
-    site: 'Boston Medical Center'
-  },
-  {
-    id: 3,
-    participant_id: 'PART-12345678',
-    visit_name: 'Treatment Visit 1',
-    scheduled_date: '2024-03-17',
-    status: 'scheduled',
-    site: 'Boston Medical Center'
-  }
+  { id: 'v1', participantId: 'p1', date: '2023-02-01', type: 'Baseline', status: 'Completed' },
+  { id: 'v2', participantId: 'p1', date: '2023-03-01', type: 'Follow-up 1', status: 'Scheduled' },
+  { id: 'v3', participantId: 'p2', date: '2023-02-15', type: 'Screening Visit', status: 'Completed' },
 ];
 
+// Helper function for status badge styling (can be reused for participant status if needed)
 const getStatusBadge = (status: string) => {
-  const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    active: { label: 'Active', variant: 'default' },
-    completed: { label: 'Completed', variant: 'secondary' },
-    pending_approval: { label: 'Pending Approval', variant: 'outline' },
-    draft: { label: 'Draft', variant: 'outline' },
-    paused: { label: 'Paused', variant: 'destructive' },
-    terminated: { label: 'Terminated', variant: 'destructive' },
-    screening: { label: 'Screening', variant: 'outline' },
-    enrolled: { label: 'Enrolled', variant: 'default' },
-    withdrawn: { label: 'Withdrawn', variant: 'destructive' },
-    scheduled: { label: 'Scheduled', variant: 'outline' },
-    missed: { label: 'Missed', variant: 'destructive' },
-    rescheduled: { label: 'Rescheduled', variant: 'outline' },
-    cancelled: { label: 'Cancelled', variant: 'destructive' }
-  };
-
-  const config = statusMap[status] || { label: status, variant: 'outline' };
-  return <Badge variant={config.variant}>{config.label}</Badge>;
+  switch (status?.toLowerCase()) {
+    case 'recruiting':
+      return <Badge variant="default" className="bg-green-500 text-white">Recruiting</Badge>;
+    case 'active':
+    case 'enrolled': // Participant status
+      return <Badge variant="default" className="bg-blue-500 text-white">{status}</Badge>;
+    case 'completed':
+      return <Badge variant="secondary">Completed</Badge>;
+    case 'on_hold': 
+    case 'on hold':
+      return <Badge variant="outline" className="bg-yellow-500 text-white">On Hold</Badge>;
+    case 'terminated':
+      return <Badge variant="destructive">Terminated</Badge>;
+    case 'screening': // Participant status
+      return <Badge variant="default" className="bg-purple-500 text-white">Screening</Badge>;
+    default:
+      return <Badge variant="outline">{status || 'Unknown'}</Badge>;
+  }
 };
 
-export function ClinicalTrials() {
-  const [studies, setStudies] = useState(mockStudies);
-  const [participants, setParticipants] = useState(mockParticipants);
-  const [visits, setVisits] = useState(mockVisits);
-  const [selectedStudy, setSelectedStudy] = useState<number | null>(null);
 
-  const filteredParticipants = selectedStudy 
-    ? participants.filter(p => p.study_id === selectedStudy)
-    : participants;
+export function ClinicalTrials() {
+  const { loading: studiesLoading, error: studiesError, data: studiesData } = useQuery(GET_STUDIES_LIST);
+  const [
+    loadParticipants, 
+    { loading: participantsLoading, error: participantsError, data: participantsData }
+  ] = useLazyQuery(GET_PARTICIPANTS_FOR_STUDY);
+  
+  const [isAddStudySheetOpen, setIsAddStudySheetOpen] = useState(false);
+  const [visits, setVisits] = useState(mockVisits); // Keep for now
+  const [selectedStudy, setSelectedStudy] = useState<string | null>(null);
+
+  const studies = studiesData?.studies || [];
+  const currentParticipants = participantsData?.participants || [];
+
+  // Filter visits based on currently displayed participants (if any)
+  const selectedStudyParticipantIds = new Set(currentParticipants.map((p: any) => p.id));
+  const filteredVisits = selectedStudy ? visits.filter(v => selectedStudyParticipantIds.has(v.participantId)) : [];
+
+  const handleStudySelect = (studyId: string) => {
+    setSelectedStudy(studyId);
+    loadParticipants({ variables: { studyId: studyId } });
+  };
+
+  const handleStudyAdded = (newStudyData: any) => {
+    console.log('New study added, data to potentially update cache or list:', newStudyData);
+    setIsAddStudySheetOpen(false); 
+    // GET_STUDIES_LIST query is refetched by AddStudyForm's useMutation hook
+  };
+
+  if (studiesLoading) return <p className="text-center p-4">Loading studies...</p>;
+  if (studiesError) return <p className="text-center p-4 text-red-600">Error fetching studies: {studiesError.message}</p>;
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Clinical Trial Management</h1>
-      
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold">Clinical Trials Management</h1>
+        <p className="text-gray-600">Overview and management of ongoing and upcoming clinical trials.</p>
+      </header>
+
       <Tabs defaultValue="studies" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="studies">Studies</TabsTrigger>
-          <TabsTrigger value="participants">Participants</TabsTrigger>
-          <TabsTrigger value="visits">Visits</TabsTrigger>
+          <TabsTrigger value="participants" disabled={!selectedStudy && !participantsLoading}>Participants</TabsTrigger>
+          <TabsTrigger value="visits" disabled={!selectedStudy && !participantsLoading}>Visits</TabsTrigger>
         </TabsList>
-        
+
+        {/* Studies Tab Content */}
         <TabsContent value="studies" className="space-y-4">
-          <div className="flex justify-between mb-4">
+          <div className="flex justify-between items-center mt-4 mb-4">
             <h2 className="text-xl font-semibold">Clinical Studies</h2>
-            <Button>Add New Study</Button>
+            <Sheet open={isAddStudySheetOpen} onOpenChange={setIsAddStudySheetOpen}>
+              <SheetTrigger asChild>
+                <Button onClick={() => setIsAddStudySheetOpen(true)}>Add New Study</Button>
+              </SheetTrigger>
+              <SheetContent className="md:w-2/3 lg:w-1/2 xl:w-1/3 sm:w-full p-0 overflow-y-auto">
+                <AddStudyForm 
+                  onClose={() => setIsAddStudySheetOpen(false)} 
+                  onStudyAdded={handleStudyAdded} 
+                />
+              </SheetContent>
+            </Sheet>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {studies.map(study => (
-              <Card key={study.id} className="cursor-pointer hover:shadow-md transition-shadow" 
-                onClick={() => setSelectedStudy(study.id)}>
+            {studies.map((study: any) => (
+              <Card 
+                key={study.id} 
+                className={`cursor-pointer hover:shadow-lg transition-shadow ${selectedStudy === study.id ? 'ring-2 ring-blue-500 shadow-lg' : 'shadow-md'}`}
+                onClick={() => handleStudySelect(study.id)}
+              >
                 <CardHeader>
                   <CardTitle>{study.title}</CardTitle>
-                  <CardDescription>{study.protocol_number}</CardDescription>
+                  <CardDescription>{study.protocolNumber}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -169,107 +120,139 @@ export function ClinicalTrials() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Phase:</span>
-                      <span>{study.phase.replace('PHASE_', 'Phase ')}</span>
+                      <span>{study.phase ? study.phase.replace(/_/g, ' ') : 'N/A'}</span>
                     </div>
-                    <div className="flex justify-between">
+                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Area:</span>
-                      <span>{study.therapeutic_area}</span>
+                      <span>{study.therapeuticArea || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">PI:</span>
-                      <span>{study.principal_investigator}</span>
+                      <span>
+                        {study.principalInvestigator 
+                         ? `${study.principalInvestigator.firstName || ''} ${study.principalInvestigator.lastName || ''}`.trim() || study.principalInvestigator.email 
+                         : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Sponsor:</span>
+                      <span>{study.sponsorName || 'N/A'}</span>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <span className="text-sm text-gray-500">Started: {study.start_date}</span>
-                  <span className="text-sm text-gray-500">Target: {study.target_participants}</span>
+                <CardFooter className="flex justify-between text-sm text-gray-500">
+                  <span>Started: {study.startDate ? new Date(study.startDate).toLocaleDateString() : 'N/A'}</span>
+                  <span>Target: {study.targetEnrollment}</span>
                 </CardFooter>
               </Card>
             ))}
           </div>
         </TabsContent>
-        
+
+        {/* Participants Tab Content */}
         <TabsContent value="participants">
-          <div className="flex justify-between mb-4">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedStudy 
-                ? `Participants for ${studies.find(s => s.id === selectedStudy)?.protocol_number}` 
-                : 'All Participants'}
+              {selectedStudy && studies.find((s:any) => s.id === selectedStudy)
+                ? `Participants for ${studies.find((s:any) => s.id === selectedStudy)?.protocolNumber}`
+                : 'Select a study to view participants'}
             </h2>
             <div className="space-x-2">
               {selectedStudy && (
-                <Button variant="outline" onClick={() => setSelectedStudy(null)}>
-                  Clear Filter
+                <Button variant="outline" onClick={() => {
+                  setSelectedStudy(null);
+                  // No need to manually clear participantsData for useLazyQuery, it's tied to the query execution
+                }}>
+                  Clear Selection
                 </Button>
               )}
-              <Button>Add Participant</Button>
+              <Button disabled={!selectedStudy}>Add Participant</Button> 
             </div>
           </div>
           
-          <Table>
-            <TableCaption>List of clinical trial participants</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Enrollment Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredParticipants.map(participant => (
-                <TableRow key={participant.id}>
-                  <TableCell>{participant.participant_id}</TableCell>
-                  <TableCell>{participant.name}</TableCell>
-                  <TableCell>{getStatusBadge(participant.status)}</TableCell>
-                  <TableCell>{participant.site}</TableCell>
-                  <TableCell>{participant.enrollment_date || 'Not enrolled'}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {selectedStudy ? (
+            participantsLoading ? (
+              <p className="text-center p-4">Loading participants...</p>
+            ) : participantsError ? (
+              <p className="text-center p-4 text-red-600">Error fetching participants: {participantsError.message}</p>
+            ) : currentParticipants.length > 0 ? (
+              <Table>
+                <TableCaption>
+                  {`List of participants for study ${studies.find((s:any) => s.id === selectedStudy)?.protocolNumber}`}
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Participant ID</TableHead>
+                    <TableHead>First Name</TableHead>
+                    <TableHead>Last Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Enrollment Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentParticipants.map((participant: any) => (
+                    <TableRow key={participant.id}>
+                      <TableCell>{participant.participantId}</TableCell>
+                      <TableCell>{participant.firstName}</TableCell>
+                      <TableCell>{participant.lastName}</TableCell>
+                      <TableCell>{getStatusBadge(participant.status)}</TableCell>
+                      <TableCell>{participant.enrollmentDate ? new Date(participant.enrollmentDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-center p-4">No participants found for this study.</p>
+            )
+          ) : (
+            <p className="text-center p-4">Please select a study to see its participants.</p>
+          )}
         </TabsContent>
-        
-        <TabsContent value="visits">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-semibold">Scheduled Visits</h2>
-            <Button>Schedule Visit</Button>
-          </div>
-          
-          <Table>
-            <TableCaption>List of scheduled and completed visits</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Participant ID</TableHead>
-                <TableHead>Visit</TableHead>
-                <TableHead>Scheduled Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visits.map(visit => (
-                <TableRow key={visit.id}>
-                  <TableCell>{visit.participant_id}</TableCell>
-                  <TableCell>{visit.visit_name}</TableCell>
-                  <TableCell>{visit.scheduled_date}</TableCell>
-                  <TableCell>{getStatusBadge(visit.status)}</TableCell>
-                  <TableCell>{visit.site}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button variant="outline" size="sm">Edit</Button>
-                    <Button variant="outline" size="sm">Complete</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+
+        {/* Visits Tab Content (remains using mock data for now) */}
+        <TabsContent value="visits" className="space-y-4">
+          {selectedStudy && (
+            <>
+              <h2 className="text-xl font-semibold">
+                Visits for Study: {studies.find((s: any) => s.id === selectedStudy)?.title || 'Selected Study'}
+              </h2>
+              <div className="flex justify-end">
+                <Button>Schedule New Visit</Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Visit ID</TableHead>
+                    <TableHead>Participant ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredVisits.length > 0 ? (
+                    filteredVisits.map(visit => (
+                      <TableRow key={visit.id}>
+                        <TableCell>{visit.id}</TableCell>
+                        <TableCell>{visit.participantId}</TableCell>
+                        <TableCell>{visit.date}</TableCell>
+                        <TableCell>{visit.type}</TableCell>
+                        <TableCell><Badge variant={visit.status === 'Completed' ? 'default' : 'secondary'}>{visit.status}</Badge></TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">No visits scheduled for participants in this study yet.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
